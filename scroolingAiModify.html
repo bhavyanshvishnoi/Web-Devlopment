@@ -1,0 +1,260 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+<title>Modern UI JS Project</title>
+
+<style>
+
+/* Google Font */
+@import url('https://fonts.googleapis.com/css2?family=Poppins:wght@300;500;700&display=swap');
+
+html{
+scroll-behavior:smooth;
+}
+
+body{
+margin:0;
+font-family:'Poppins',sans-serif;
+background:linear-gradient(135deg,#1d2671,#c33764);
+color:white;
+transition:0.4s;
+}
+
+/* DARK MODE */
+.dark{
+background:#0f172a;
+color:#e2e8f0;
+}
+
+/* NAVBAR */
+nav{
+display:flex;
+justify-content:space-between;
+align-items:center;
+padding:15px 50px;
+background:rgba(255,255,255,0.1);
+backdrop-filter: blur(12px);
+position:sticky;
+top:0;
+z-index:100;
+}
+
+nav a{
+color:white;
+text-decoration:none;
+margin:0 15px;
+font-weight:500;
+transition:0.3s;
+}
+
+nav a:hover{
+color:#ffd369;
+}
+
+/* BUTTON */
+.toggle-btn{
+padding:8px 18px;
+border:none;
+border-radius:25px;
+cursor:pointer;
+background:linear-gradient(135deg,#ff9a9e,#fad0c4);
+color:black;
+font-weight:bold;
+transition:0.3s;
+}
+
+.toggle-btn:hover{
+transform:scale(1.1);
+}
+
+/* SECTION */
+section{
+padding:80px 20px;
+text-align:center;
+min-height:100vh;
+}
+
+/* HERO */
+.hero{
+font-size:45px;
+font-weight:700;
+letter-spacing:1px;
+animation:fadeIn 1.5s ease;
+}
+
+@keyframes fadeIn{
+from{opacity:0; transform:translateY(20px);}
+to{opacity:1; transform:translateY(0);}
+}
+
+/* CARD */
+.card{
+background:rgba(255,255,255,0.15);
+backdrop-filter:blur(15px);
+border-radius:15px;
+max-width:500px;
+margin:auto;
+padding:30px;
+box-shadow:0 10px 40px rgba(0,0,0,0.3);
+transition:0.3s;
+}
+
+.card:hover{
+transform:translateY(-12px) scale(1.02);
+}
+
+/* FORM */
+form{
+display:flex;
+flex-direction:column;
+gap:15px;
+}
+
+input{
+padding:12px;
+border-radius:8px;
+border:none;
+outline:none;
+font-size:14px;
+}
+
+/* SUBMIT BUTTON */
+.submit-btn{
+background:linear-gradient(135deg,#667eea,#764ba2);
+color:white;
+border:none;
+padding:12px;
+border-radius:8px;
+cursor:pointer;
+font-weight:bold;
+transition:0.3s;
+}
+
+.submit-btn:hover{
+background:linear-gradient(135deg,#5a67d8,#6b46c1);
+transform:scale(1.05);
+}
+
+/* ERROR */
+.error{
+color:#ff6b6b;
+font-size:12px;
+text-align:left;
+}
+
+/* RESPONSIVE */
+@media(max-width:600px){
+.hero{
+font-size:30px;
+}
+nav{
+flex-direction:column;
+gap:10px;
+}
+}
+
+</style>
+
+</head>
+
+<body>
+
+<nav>
+<div>
+<a href="#home">Home</a>
+<a href="#about">About</a>
+<a href="#contact">Contact</a>
+</div>
+
+<button class="toggle-btn" onclick="toggleDark()">🌙 Mode</button>
+</nav>
+
+<section id="home">
+<h1 class="hero">✨ Modern JavaScript UI</h1>
+<p>Dark Mode • Validation • Smooth UX</p>
+</section>
+
+<section id="about">
+<div class="card">
+<h2>🚀 About Project</h2>
+<p>
+This is a professional UI demo using modern JavaScript features with
+glassmorphism design, animations and responsive layout.
+</p>
+</div>
+</section>
+
+<section id="contact">
+<div class="card">
+<h2>📩 Contact Form</h2>
+
+<form onsubmit="return validateForm()">
+
+<input type="text" id="name" placeholder="Enter your name">
+<span id="nameError" class="error"></span>
+
+<input type="email" id="email" placeholder="Enter your email">
+<span id="emailError" class="error"></span>
+
+<input type="password" id="password" placeholder="Enter password">
+<span id="passError" class="error"></span>
+
+<button class="submit-btn">Submit</button>
+
+</form>
+</div>
+</section>
+
+<script>
+
+/* DARK MODE */
+function toggleDark(){
+document.body.classList.toggle("dark");
+}
+
+/* FORM VALIDATION */
+function validateForm(){
+
+let name=document.getElementById("name").value;
+let email=document.getElementById("email").value;
+let password=document.getElementById("password").value;
+
+let valid=true;
+
+/* NAME */
+if(name.trim()==""){
+document.getElementById("nameError").innerText="Name required";
+valid=false;
+}else{
+document.getElementById("nameError").innerText="";
+}
+
+/* EMAIL */
+let emailPattern=/^[^ ]+@[^ ]+\.[a-z]{2,3}$/;
+
+if(!email.match(emailPattern)){
+document.getElementById("emailError").innerText="Enter valid email";
+valid=false;
+}else{
+document.getElementById("emailError").innerText="";
+}
+
+/* PASSWORD */
+if(password.length<6){
+document.getElementById("passError").innerText="Min 6 characters required";
+valid=false;
+}else{
+document.getElementById("passError").innerText="";
+}
+
+return valid;
+}
+
+</script>
+
+</body>
+</html>
