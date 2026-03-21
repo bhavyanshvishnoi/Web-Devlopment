@@ -1,0 +1,1000 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>WXTERM // Weather Terminal</title>
+<link href="https://fonts.googleapis.com/css2?family=Share+Tech+Mono&family=Orbitron:wght@400;700;900&display=swap" rel="stylesheet">
+<style>
+*, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+ 
+:root {
+--green: #00ff88;
+--green-dim: #00cc66;
+--green-faint: rgba(0,255,136,0.08);
+--green-glow: rgba(0,255,136,0.3);
+--amber: #ffaa00;
+--red: #ff4444;
+--cyan: #00ffcc;
+--bg: #050a05;
+--bg2: #080e08;
+--grid: rgba(0,255,136,0.04);
+--border: rgba(0,255,136,0.2);
+--border-bright: rgba(0,255,136,0.55);
+--text: #00ff88;
+--text-dim: rgba(0,255,136,0.45);
+--text-faint: rgba(0,255,136,0.22);
+}
+ 
+html, body { height: 100%; }
+ 
+body {
+font-family: 'Share Tech Mono', monospace;
+background: var(--bg);
+color: var(--text);
+overflow-x: hidden;
+min-height: 100vh;
+cursor: crosshair;
+}
+ 
+/* ── SCANLINES ── */
+body::before {
+content: '';
+position: fixed;
+inset: 0;
+z-index: 100;
+pointer-events: none;
+background: repeating-linear-gradient(
+0deg,
+transparent,
+transparent 2px,
+rgba(0,0,0,0.07) 2px,
+rgba(0,0,0,0.07) 4px
+);
+}
+ 
+/* ── CRT VIGNETTE ── */
+body::after {
+content: '';
+position: fixed;
+inset: 0;
+z-index: 99;
+pointer-events: none;
+background: radial-gradient(ellipse at center, transparent 60%, rgba(0,0,0,0.7) 100%);
+}
+ 
+/* ── GRID BG ── */
+.grid-bg {
+position: fixed;
+inset: 0;
+z-index: 0;
+background-image:
+linear-gradient(var(--grid) 1px, transparent 1px),
+linear-gradient(90deg, var(--grid) 1px, transparent 1px);
+background-size: 40px 40px;
+}
+ 
+/* ── PHOSPHOR GLOW PULSE ── */
+.grid-bg::after {
+content: '';
+position: fixed;
+inset: 0;
+background: radial-gradient(ellipse 70% 50% at 50% 50%, rgba(0,255,136,0.03) 0%, transparent 100%);
+animation: breathe 4s ease-in-out infinite;
+}
+@keyframes breathe {
+0%, 100% { opacity: 0.5; }
+50% { opacity: 1; }
+}
+ 
+/* ── SHELL ── */
+.shell {
+position: relative;
+z-index: 10;
+max-width: 900px;
+margin: 0 auto;
+padding: 0 20px 60px;
+min-height: 100vh;
+}
+ 
+/* ── BOOT HEADER ── */
+.boot-header {
+border-bottom: 1px solid var(--border);
+padding: 20px 0 16px;
+margin-bottom: 28px;
+position: relative;
+}
+ 
+.boot-header::after {
+content: '';
+position: absolute;
+bottom: -1px; left: 0;
+width: 100%;
+height: 1px;
+background: linear-gradient(90deg, var(--green), transparent);
+box-shadow: 0 0 8px var(--green-glow);
+}
+ 
+.header-top {
+display: flex;
+justify-content: space-between;
+align-items: flex-start;
+flex-wrap: wrap;
+gap: 10px;
+}
+ 
+.logo-block {}
+ 
+.logo-main {
+font-family: 'Orbitron', monospace;
+font-size: 1.5rem;
+font-weight: 900;
+letter-spacing: 0.12em;
+color: var(--green);
+text-shadow: 0 0 20px var(--green-glow), 0 0 40px rgba(0,255,136,0.15);
+line-height: 1;
+}
+ 
+.logo-sub {
+font-size: 0.62rem;
+color: var(--text-dim);
+letter-spacing: 0.18em;
+margin-top: 4px;
+}
+ 
+.status-block {
+text-align: right;
+font-size: 0.65rem;
+color: var(--text-dim);
+line-height: 1.8;
+}
+ 
+.status-online {
+color: var(--green);
+text-shadow: 0 0 10px var(--green-glow);
+}
+ 
+.status-online::before {
+content: '● ';
+animation: blink 1.2s step-end infinite;
+}
+@keyframes blink { 50% { opacity: 0; } }
+ 
+#sysTime {
+font-family: 'Orbitron', monospace;
+font-size: 0.9rem;
+color: var(--cyan);
+letter-spacing: 0.1em;
+}
+ 
+/* ── TICKER ── */
+.ticker-wrap {
+overflow: hidden;
+border: 1px solid var(--border);
+background: var(--green-faint);
+padding: 6px 0;
+margin-bottom: 24px;
+position: relative;
+}
+.ticker-wrap::before, .ticker-wrap::after {
+content: '';
+position: absolute;
+top: 0; bottom: 0;
+width: 40px;
+z-index: 2;
+}
+.ticker-wrap::before { left: 0; background: linear-gradient(90deg, var(--bg), transparent); }
+.ticker-wrap::after { right: 0; background: linear-gradient(-90deg, var(--bg), transparent); }
+ 
+.ticker-inner {
+display: flex;
+white-space: nowrap;
+animation: scroll 30s linear infinite;
+font-size: 0.65rem;
+letter-spacing: 0.12em;
+color: var(--text-dim);
+}
+@keyframes scroll { from { transform: translateX(0); } to { transform: translateX(-50%); } }
+ 
+/* ── SEARCH TERMINAL ── */
+.terminal-input-block {
+margin-bottom: 28px;
+}
+ 
+.prompt-line {
+font-size: 0.65rem;
+color: var(--text-dim);
+letter-spacing: 0.12em;
+margin-bottom: 6px;
+}
+ 
+.prompt-line span { color: var(--green); }
+ 
+.input-row {
+display: flex;
+align-items: center;
+border: 1px solid var(--border-bright);
+background: var(--green-faint);
+position: relative;
+box-shadow: 0 0 20px rgba(0,255,136,0.07), inset 0 0 20px rgba(0,0,0,0.4);
+}
+.input-row:focus-within {
+border-color: var(--green);
+box-shadow: 0 0 25px rgba(0,255,136,0.2), inset 0 0 20px rgba(0,0,0,0.4);
+}
+ 
+.prompt-symbol {
+padding: 13px 4px 13px 16px;
+font-size: 0.9rem;
+color: var(--green);
+text-shadow: 0 0 10px var(--green-glow);
+user-select: none;
+white-space: nowrap;
+}
+ 
+.cmd-input {
+flex: 1;
+padding: 13px 8px;
+background: transparent;
+border: none;
+outline: none;
+font-family: 'Share Tech Mono', monospace;
+font-size: 0.88rem;
+color: var(--green);
+letter-spacing: 0.06em;
+caret-color: var(--green);
+}
+.cmd-input::placeholder { color: var(--text-faint); }
+ 
+.exec-btn {
+padding: 0 20px;
+height: 100%;
+border: none;
+border-left: 1px solid var(--border);
+background: transparent;
+color: var(--green);
+font-family: 'Share Tech Mono', monospace;
+font-size: 0.7rem;
+letter-spacing: 0.15em;
+cursor: pointer;
+text-transform: uppercase;
+transition: background 0.2s, color 0.2s;
+white-space: nowrap;
+}
+.exec-btn:hover {
+background: var(--green);
+color: var(--bg);
+}
+ 
+.unit-row {
+display: flex;
+align-items: center;
+gap: 12px;
+margin-top: 10px;
+font-size: 0.62rem;
+letter-spacing: 0.14em;
+color: var(--text-dim);
+}
+ 
+.unit-toggle { display: flex; gap: 2px; }
+ 
+.utbtn {
+padding: 4px 14px;
+border: 1px solid var(--border);
+background: transparent;
+color: var(--text-dim);
+font-family: 'Share Tech Mono', monospace;
+font-size: 0.62rem;
+letter-spacing: 0.1em;
+cursor: pointer;
+transition: all 0.15s;
+}
+.utbtn.on {
+background: var(--green);
+color: var(--bg);
+border-color: var(--green);
+box-shadow: 0 0 12px var(--green-glow);
+}
+ 
+/* ── DATA PANELS ── */
+.panels {
+display: flex;
+flex-direction: column;
+gap: 16px;
+}
+ 
+/* Panel wrapper */
+.panel {
+border: 1px solid var(--border);
+background: rgba(0,255,136,0.025);
+position: relative;
+overflow: hidden;
+animation: panelIn 0.4s ease both;
+}
+@keyframes panelIn {
+from { opacity: 0; transform: translateY(12px); }
+to { opacity: 1; transform: translateY(0); }
+}
+ 
+.panel-bar {
+display: flex;
+justify-content: space-between;
+align-items: center;
+padding: 7px 16px;
+background: rgba(0,255,136,0.06);
+border-bottom: 1px solid var(--border);
+font-size: 0.62rem;
+letter-spacing: 0.18em;
+text-transform: uppercase;
+color: var(--text-dim);
+}
+ 
+.panel-bar-title { color: var(--green); }
+ 
+.panel-dots { display: flex; gap: 6px; }
+.panel-dot {
+width: 8px; height: 8px;
+border-radius: 50%;
+border: 1px solid var(--border);
+}
+.panel-dot.g { background: var(--green); box-shadow: 0 0 6px var(--green-glow); }
+.panel-dot.a { background: var(--amber); box-shadow: 0 0 6px rgba(255,170,0,0.5); }
+.panel-dot.r { background: var(--red); }
+ 
+/* ── MAIN DATA PANEL ── */
+.main-data {
+padding: 28px 28px 24px;
+display: grid;
+grid-template-columns: 1fr auto;
+gap: 20px 40px;
+align-items: start;
+}
+ 
+.location-output {}
+ 
+.loc-tag {
+font-size: 0.6rem;
+color: var(--text-dim);
+letter-spacing: 0.2em;
+text-transform: uppercase;
+margin-bottom: 6px;
+}
+.loc-tag::before { content: '> '; }
+ 
+.city-out {
+font-family: 'Orbitron', monospace;
+font-size: 2.2rem;
+font-weight: 700;
+color: var(--green);
+text-shadow: 0 0 30px rgba(0,255,136,0.35);
+letter-spacing: 0.05em;
+line-height: 1;
+margin-bottom: 6px;
+}
+ 
+.country-out {
+font-size: 0.65rem;
+color: var(--text-dim);
+letter-spacing: 0.2em;
+text-transform: uppercase;
+}
+ 
+.coords-out {
+font-size: 0.6rem;
+color: var(--text-faint);
+letter-spacing: 0.1em;
+margin-top: 4px;
+}
+ 
+.time-out {
+font-size: 0.62rem;
+letter-spacing: 0.14em;
+color: var(--cyan);
+margin-top: 8px;
+}
+ 
+/* Temp block */
+.temp-block { text-align: right; }
+ 
+.temp-tag {
+font-size: 0.58rem;
+letter-spacing: 0.2em;
+color: var(--text-dim);
+text-transform: uppercase;
+margin-bottom: 4px;
+}
+ 
+.temp-value {
+font-family: 'Orbitron', monospace;
+font-size: 5.5rem;
+font-weight: 900;
+color: var(--green);
+text-shadow: 0 0 40px rgba(0,255,136,0.4), 0 0 80px rgba(0,255,136,0.15);
+line-height: 1;
+letter-spacing: -0.02em;
+}
+ 
+.temp-unit {
+font-size: 1.8rem;
+vertical-align: super;
+font-weight: 400;
+color: var(--text-dim);
+letter-spacing: 0;
+}
+ 
+.condition-out {
+font-size: 0.8rem;
+letter-spacing: 0.12em;
+text-transform: uppercase;
+color: var(--amber);
+margin-top: 6px;
+text-align: right;
+}
+ 
+.icon-out {
+font-size: 2.8rem;
+text-align: right;
+margin-top: 4px;
+}
+ 
+/* divider with label */
+.panel-sep {
+display: flex;
+align-items: center;
+gap: 10px;
+padding: 0 28px;
+margin: 4px 0;
+}
+.sep-label {
+font-size: 0.58rem;
+letter-spacing: 0.22em;
+text-transform: uppercase;
+color: var(--text-faint);
+white-space: nowrap;
+}
+.sep-line {
+flex: 1;
+height: 1px;
+background: var(--border);
+}
+ 
+/* ── METRICS GRID ── */
+.metrics-grid {
+display: grid;
+grid-template-columns: repeat(4, 1fr);
+gap: 0;
+border-top: 1px solid var(--border);
+}
+ 
+.metric-cell {
+padding: 18px 20px;
+border-right: 1px solid var(--border);
+position: relative;
+}
+.metric-cell:last-child { border-right: none; }
+ 
+.metric-cell::before {
+content: '';
+position: absolute;
+top: 0; left: 0;
+width: 2px; height: 100%;
+background: transparent;
+transition: background 0.2s;
+}
+.metric-cell:hover::before { background: var(--green); box-shadow: 0 0 8px var(--green-glow); }
+ 
+.m-label {
+font-size: 0.55rem;
+letter-spacing: 0.22em;
+text-transform: uppercase;
+color: var(--text-faint);
+margin-bottom: 8px;
+}
+.m-ico { font-size: 1rem; margin-bottom: 6px; }
+.m-value {
+font-family: 'Orbitron', monospace;
+font-size: 1.3rem;
+font-weight: 700;
+color: var(--cyan);
+text-shadow: 0 0 12px rgba(0,255,204,0.4);
+line-height: 1;
+}
+.m-unit { font-size: 0.6rem; color: var(--text-dim); letter-spacing: 0.1em; margin-top: 3px; }
+ 
+/* ── FORECAST PANEL ── */
+.forecast-grid {
+display: grid;
+grid-template-columns: repeat(5, 1fr);
+gap: 0;
+}
+ 
+.fc-cell {
+padding: 20px 14px;
+border-right: 1px solid var(--border);
+text-align: center;
+position: relative;
+transition: background 0.2s;
+cursor: default;
+}
+.fc-cell:last-child { border-right: none; }
+.fc-cell:hover { background: var(--green-faint); }
+ 
+.fc-cell::after {
+content: '';
+position: absolute;
+top: 0; left: 10%; right: 10%;
+height: 1px;
+background: transparent;
+transition: background 0.2s;
+}
+.fc-cell:hover::after { background: var(--green); }
+ 
+.fc-day-lbl {
+font-size: 0.6rem;
+letter-spacing: 0.2em;
+text-transform: uppercase;
+color: var(--text-dim);
+margin-bottom: 10px;
+}
+ 
+.fc-emoji { font-size: 1.8rem; margin-bottom: 10px; display: block; }
+ 
+.fc-hi {
+font-family: 'Orbitron', monospace;
+font-size: 1rem;
+font-weight: 700;
+color: var(--green);
+}
+.fc-lo {
+font-size: 0.7rem;
+color: var(--text-faint);
+margin-top: 3px;
+}
+ 
+.fc-bar {
+width: 80%;
+margin: 8px auto 0;
+height: 2px;
+background: var(--border);
+position: relative;
+overflow: hidden;
+}
+.fc-bar-fill {
+position: absolute;
+left: 0; top: 0; height: 100%;
+background: var(--green);
+box-shadow: 0 0 6px var(--green-glow);
+}
+ 
+/* ── LOADING / ERROR ── */
+.terminal-output {
+padding: 40px 28px;
+font-size: 0.78rem;
+letter-spacing: 0.08em;
+line-height: 2;
+animation: panelIn 0.3s ease both;
+}
+ 
+.t-line { display: flex; gap: 12px; margin-bottom: 2px; }
+.t-prompt { color: var(--text-dim); white-space: nowrap; }
+.t-text { color: var(--green); }
+.t-cursor {
+display: inline-block;
+width: 8px; height: 1em;
+background: var(--green);
+animation: blink 0.8s step-end infinite;
+vertical-align: text-bottom;
+box-shadow: 0 0 8px var(--green-glow);
+}
+.t-error { color: var(--red); }
+.t-warn { color: var(--amber); }
+.t-info { color: var(--cyan); }
+ 
+/* ── FOOTER ── */
+.term-footer {
+display: flex;
+justify-content: space-between;
+align-items: center;
+margin-top: 28px;
+padding-top: 12px;
+border-top: 1px solid var(--border);
+font-size: 0.58rem;
+letter-spacing: 0.15em;
+color: var(--text-faint);
+flex-wrap: wrap;
+gap: 8px;
+}
+ 
+.term-footer span { color: var(--text-dim); }
+ 
+/* ── RESPONSIVE ── */
+@media (max-width: 600px) {
+.main-data { grid-template-columns: 1fr; gap: 16px; }
+.temp-block { text-align: left; }
+.condition-out, .icon-out { text-align: left; }
+.temp-value { font-size: 4rem; }
+.city-out { font-size: 1.6rem; }
+.metrics-grid { grid-template-columns: repeat(2, 1fr); }
+.metric-cell:nth-child(2) { border-right: none; }
+.metric-cell:nth-child(3) { border-top: 1px solid var(--border); }
+.metric-cell:nth-child(4) { border-top: 1px solid var(--border); }
+.forecast-grid { grid-template-columns: repeat(3, 1fr); }
+.fc-cell:nth-child(n+4) { border-top: 1px solid var(--border); }
+.logo-main { font-size: 1.1rem; }
+}
+</style>
+</head>
+<body>
+ 
+<div class="grid-bg"></div>
+ 
+<div class="shell">
+ 
+<!-- Boot header -->
+<div class="boot-header">
+<div class="header-top">
+<div class="logo-block">
+<div class="logo-main">WXTERM</div>
+<div class="logo-sub">WEATHER DATA TERMINAL // v4.2.1</div>
+</div>
+<div class="status-block">
+<div class="status-online">SYSTEM ONLINE</div>
+<div id="sysTime">--:--:--</div>
+<div style="margin-top:2px">OPEN-METEO API // CONNECTED</div>
+</div>
+</div>
+</div>
+ 
+<!-- Ticker -->
+<div class="ticker-wrap">
+<div class="ticker-inner" id="ticker">
+&nbsp;&nbsp;&nbsp;&nbsp;
+WXTERM WEATHER TERMINAL &nbsp;·&nbsp; REAL-TIME ATMOSPHERIC DATA &nbsp;·&nbsp;
+OPEN-METEO API &nbsp;·&nbsp; NO API KEY REQUIRED &nbsp;·&nbsp;
+TEMPERATURE · HUMIDITY · WIND · UV INDEX · VISIBILITY &nbsp;·&nbsp;
+5-DAY FORECAST AVAILABLE &nbsp;·&nbsp;
+TYPE CITY NAME AND PRESS [EXEC] OR ENTER &nbsp;·&nbsp;
+WXTERM WEATHER TERMINAL &nbsp;·&nbsp; REAL-TIME ATMOSPHERIC DATA &nbsp;·&nbsp;
+OPEN-METEO API &nbsp;·&nbsp; NO API KEY REQUIRED &nbsp;·&nbsp;
+TEMPERATURE · HUMIDITY · WIND · UV INDEX · VISIBILITY &nbsp;·&nbsp;
+5-DAY FORECAST AVAILABLE &nbsp;·&nbsp;
+TYPE CITY NAME AND PRESS [EXEC] OR ENTER &nbsp;·&nbsp;
+</div>
+</div>
+ 
+<!-- Search -->
+<div class="terminal-input-block">
+<div class="prompt-line">
+<span>WXTERM@LOCAL</span>:~$ query_weather --city
+</div>
+<div class="input-row">
+<div class="prompt-symbol">>&nbsp;</div>
+<input class="cmd-input" id="cmdInput" type="text" placeholder="ENTER CITY NAME..." autocomplete="off" spellcheck="false" />
+<button class="exec-btn" id="execBtn">[EXEC]</button>
+</div>
+<div class="unit-row">
+UNITS:
+<div class="unit-toggle">
+<button class="utbtn on" id="btnC">°C</button>
+<button class="utbtn" id="btnF">°F</button>
+</div>
+</div>
+</div>
+ 
+<!-- Output -->
+<div id="output" class="panels"></div>
+ 
+<div class="term-footer">
+<span>WXTERM</span> © 2025 · DATA: OPEN-METEO.COM · FREE & OPEN SOURCE
+<span id="fetchCount">QUERIES: 0</span>
+</div>
+ 
+</div>
+ 
+<script>
+// ── State ──────────────────────────────────────────────────────
+let unit = 'C';
+let cached = null;
+let queryCount = 0;
+ 
+// ── Clock ──────────────────────────────────────────────────────
+function tick() {
+const n = new Date();
+document.getElementById('sysTime').textContent =
+n.toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+}
+setInterval(tick, 1000); tick();
+ 
+// ── Units ──────────────────────────────────────────────────────
+const toF = c => Math.round(c * 9/5 + 32);
+const fmt = c => unit === 'C' ? Math.round(c) : toF(c);
+ 
+document.getElementById('btnC').addEventListener('click', () => setUnit('C'));
+document.getElementById('btnF').addEventListener('click', () => setUnit('F'));
+ 
+function setUnit(u) {
+unit = u;
+document.getElementById('btnC').classList.toggle('on', u === 'C');
+document.getElementById('btnF').classList.toggle('on', u === 'F');
+if (cached) renderWeather(cached);
+}
+ 
+// ── Search ─────────────────────────────────────────────────────
+document.getElementById('cmdInput').addEventListener('keydown', e => {
+if (e.key === 'Enter') doSearch();
+});
+document.getElementById('execBtn').addEventListener('click', doSearch);
+ 
+function doSearch() {
+const q = document.getElementById('cmdInput').value.trim();
+if (q) fetchWeather(q);
+}
+ 
+// ── Fetch ──────────────────────────────────────────────────────
+async function fetchWeather(city) {
+showLoading(city);
+queryCount++;
+document.getElementById('fetchCount').textContent = `QUERIES: ${queryCount}`;
+ 
+try {
+const geoRes = await fetch(
+`https://geocoding-api.open-meteo.com/v1/search?name=${encodeURIComponent(city)}&count=1&language=en&format=json`
+);
+const geoData = await geoRes.json();
+ 
+if (!geoData.results?.length) {
+showError(`CITY NOT FOUND: "${city.toUpperCase()}"\nTRY A DIFFERENT SPELLING OR NEARBY CITY.`);
+return;
+}
+ 
+const place = geoData.results[0];
+const { latitude, longitude, name, country, timezone } = place;
+ 
+const wRes = await fetch(
+`https://api.open-meteo.com/v1/forecast` +
+`?latitude=${latitude}&longitude=${longitude}` +
+`&current=temperature_2m,apparent_temperature,relative_humidity_2m,` +
+`wind_speed_10m,weather_code,uv_index,visibility` +
+`&daily=weather_code,temperature_2m_max,temperature_2m_min` +
+`&timezone=${encodeURIComponent(timezone)}&forecast_days=5`
+);
+const wData = await wRes.json();
+ 
+cached = { place: { name, country, latitude, longitude, timezone }, weather: wData };
+renderWeather(cached);
+ 
+} catch (err) {
+showError(`NETWORK ERROR\n${err.message.toUpperCase()}\nCHECK CONNECTION AND RETRY.`);
+}
+}
+ 
+// ── WMO helpers ────────────────────────────────────────────────
+function wmoIcon(code) {
+if (code === 0) return '☀️';
+if (code <= 2) return '⛅';
+if (code === 3) return '☁️';
+if (code <= 49) return '🌫️';
+if (code <= 57) return '🌦️';
+if (code <= 67) return '🌧️';
+if (code <= 77) return '❄️';
+if (code <= 82) return '🌦️';
+if (code <= 86) return '🌨️';
+return '⛈️';
+}
+function wmoDesc(code) {
+if (code === 0) return 'CLEAR_SKY';
+if (code <= 2) return 'PARTLY_CLOUDY';
+if (code === 3) return 'OVERCAST';
+if (code <= 49) return 'FOG_DETECTED';
+if (code <= 57) return 'DRIZZLE';
+if (code <= 67) return 'RAIN_ACTIVE';
+if (code <= 77) return 'SNOWFALL';
+if (code <= 82) return 'RAIN_SHOWERS';
+if (code <= 86) return 'SNOW_SHOWERS';
+return 'THUNDERSTORM';
+}
+ 
+// ── Render ─────────────────────────────────────────────────────
+function renderWeather(d) {
+const { place, weather } = d;
+const cur = weather.current;
+const daily = weather.daily;
+ 
+const localTime = new Date().toLocaleTimeString('en-GB', {
+hour: '2-digit', minute: '2-digit', second: '2-digit', timeZone: place.timezone
+});
+ 
+const dayNames = ['SUN','MON','TUE','WED','THU','FRI','SAT'];
+const allTemps = daily.temperature_2m_max.concat(daily.temperature_2m_min);
+const minT = Math.min(...allTemps), maxT = Math.max(...allTemps);
+ 
+const fcHTML = daily.time.map((t, i) => {
+const label = i === 0 ? 'TODAY' : dayNames[new Date(t + 'T12:00:00').getDay()];
+const hi = daily.temperature_2m_max[i];
+const lo = daily.temperature_2m_min[i];
+const barW = maxT === minT ? 50 : Math.round(((hi - minT) / (maxT - minT)) * 100);
+return `
+<div class="fc-cell">
+<div class="fc-day-lbl">${label}</div>
+<span class="fc-emoji">${wmoIcon(daily.weather_code[i])}</span>
+<div class="fc-hi">${fmt(hi)}°</div>
+<div class="fc-lo">${fmt(lo)}°</div>
+<div class="fc-bar"><div class="fc-bar-fill" style="width:${barW}%"></div></div>
+</div>`;
+}).join('');
+ 
+const uv = cur.uv_index !== undefined ? cur.uv_index : '--';
+const vis = cur.visibility !== undefined
+? (cur.visibility >= 1000 ? (cur.visibility/1000).toFixed(0) : cur.visibility)
+: '--';
+const visUnit = cur.visibility >= 1000 ? 'km' : 'm';
+ 
+document.getElementById('output').innerHTML = `
+ 
+<!-- Main data panel -->
+<div class="panel" style="animation-delay:0s">
+<div class="panel-bar">
+<span class="panel-bar-title">CURRENT_CONDITIONS</span>
+<div style="display:flex;align-items:center;gap:16px">
+<span>LOC: ${place.name.toUpperCase()}</span>
+<div class="panel-dots">
+<div class="panel-dot g"></div>
+<div class="panel-dot a"></div>
+<div class="panel-dot r"></div>
+</div>
+</div>
+</div>
+ 
+<div class="main-data">
+<div class="location-output">
+<div class="loc-tag">TARGET_LOCATION</div>
+<div class="city-out">${place.name.toUpperCase()}</div>
+<div class="country-out">${place.country.toUpperCase()}</div>
+<div class="coords-out">
+LAT: ${place.latitude.toFixed(4)}° &nbsp; LON: ${place.longitude.toFixed(4)}°
+</div>
+<div class="time-out">LOCAL_TIME: ${localTime}</div>
+</div>
+ 
+<div class="temp-block">
+<div class="temp-tag">TEMPERATURE</div>
+<div class="temp-value">${fmt(cur.temperature_2m)}<sup class="temp-unit">°${unit}</sup></div>
+<div class="condition-out">${wmoDesc(cur.weather_code)}</div>
+<div class="icon-out">${wmoIcon(cur.weather_code)}</div>
+</div>
+</div>
+ 
+<div class="panel-sep">
+<div class="sep-label">ATMOSPHERIC_METRICS</div>
+<div class="sep-line"></div>
+</div>
+ 
+<div class="metrics-grid">
+<div class="metric-cell">
+<div class="m-label">WIND_SPEED</div>
+<div class="m-ico">💨</div>
+<div class="m-value">${Math.round(cur.wind_speed_10m)}</div>
+<div class="m-unit">km/h</div>
+</div>
+<div class="metric-cell">
+<div class="m-label">HUMIDITY</div>
+<div class="m-ico">💧</div>
+<div class="m-value">${cur.relative_humidity_2m}</div>
+<div class="m-unit">% RH</div>
+</div>
+<div class="metric-cell">
+<div class="m-label">FEELS_LIKE</div>
+<div class="m-ico">🌡️</div>
+<div class="m-value">${fmt(cur.apparent_temperature)}</div>
+<div class="m-unit">°${unit}</div>
+</div>
+<div class="metric-cell">
+<div class="m-label">VISIBILITY</div>
+<div class="m-ico">👁️</div>
+<div class="m-value">${vis}</div>
+<div class="m-unit">${visUnit}</div>
+</div>
+</div>
+</div>
+ 
+<!-- Forecast panel -->
+<div class="panel" style="animation-delay:0.1s">
+<div class="panel-bar">
+<span class="panel-bar-title">5DAY_FORECAST</span>
+<div style="display:flex;align-items:center;gap:16px">
+<span>RANGE: 120HRS</span>
+<div class="panel-dots">
+<div class="panel-dot g"></div>
+<div class="panel-dot a"></div>
+<div class="panel-dot r"></div>
+</div>
+</div>
+</div>
+<div class="forecast-grid">${fcHTML}</div>
+</div>
+ 
+`;
+}
+ 
+// ── States ─────────────────────────────────────────────────────
+function showLoading(city) {
+document.getElementById('output').innerHTML = `
+<div class="panel">
+<div class="panel-bar">
+<span class="panel-bar-title">EXECUTING_QUERY</span>
+<div class="panel-dots">
+<div class="panel-dot g"></div><div class="panel-dot a"></div><div class="panel-dot r"></div>
+</div>
+</div>
+<div class="terminal-output">
+<div class="t-line"><span class="t-prompt">[SYS]</span><span class="t-text">INITIALIZING WEATHER QUERY...</span></div>
+<div class="t-line"><span class="t-prompt">[GEO]</span><span class="t-text">GEOCODING: "${city.toUpperCase()}"</span></div>
+<div class="t-line"><span class="t-prompt">[API]</span><span class="t-text">CONNECTING TO OPEN-METEO.COM...</span></div>
+<div class="t-line"><span class="t-prompt">[DAT]</span><span class="t-text">FETCHING ATMOSPHERIC DATA <span class="t-cursor"></span></span></div>
+</div>
+</div>`;
+}
+ 
+function showError(msg) {
+const lines = msg.split('\n').map(l =>
+`<div class="t-line"><span class="t-prompt">[ERR]</span><span class="t-error">${l}</span></div>`
+).join('');
+ 
+document.getElementById('output').innerHTML = `
+<div class="panel">
+<div class="panel-bar">
+<span class="panel-bar-title" style="color:var(--red)">ERROR_STATE</span>
+<div class="panel-dots">
+<div class="panel-dot r"></div><div class="panel-dot r"></div><div class="panel-dot r"></div>
+</div>
+</div>
+<div class="terminal-output">
+${lines}
+<div class="t-line" style="margin-top:10px"><span class="t-prompt">[SYS]</span><span class="t-warn">READY FOR NEW QUERY...</span></div>
+</div>
+</div>`;
+}
+ 
+function showWelcome() {
+document.getElementById('output').innerHTML = `
+<div class="panel">
+<div class="panel-bar">
+<span class="panel-bar-title">SYSTEM_READY</span>
+<div class="panel-dots">
+<div class="panel-dot g"></div><div class="panel-dot a"></div><div class="panel-dot r"></div>
+</div>
+</div>
+<div class="terminal-output">
+<div class="t-line"><span class="t-prompt">[SYS]</span><span class="t-text">WXTERM WEATHER TERMINAL INITIALIZED</span></div>
+<div class="t-line"><span class="t-prompt">[API]</span><span class="t-info">OPEN-METEO API CONNECTED — NO KEY REQUIRED</span></div>
+<div class="t-line"><span class="t-prompt">[DAT]</span><span class="t-text">READY TO QUERY GLOBAL WEATHER DATA</span></div>
+<div class="t-line"><span class="t-prompt">[INP]</span><span class="t-warn">ENTER A CITY NAME ABOVE AND PRESS [EXEC] OR ENTER</span></div>
+<div class="t-line" style="margin-top:8px"><span class="t-prompt">>&nbsp;</span><span class="t-cursor"></span></div>
+</div>
+</div>`;
+}
+ 
+// ── Boot ───────────────────────────────────────────────────────
+fetchWeather('Indore');
+</script>
+</body>
+</html>
+...
+
+[Message clipped]  View entire message
+
+Bhavyansh Vishnoi
+5:26 PM (0 minutes ago)
+to abhaym.bca2025
+
+position: fixed;
+inset: 0;
+z-index: 100;
+pointer-events: none;
+background: repeating-linear-gradient(
+0deg,
+transparent,
+transparent 2px,
+rgba(0,0,0,0.07) 2px,
+rgba(0,0,0,0.07) 4px
+);
