@@ -1,0 +1,157 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Bhavyansh Portfolio</title>
+
+<style>
+body{
+    margin:0;
+    font-family:Arial;
+    background:linear-gradient(135deg,#667eea,#764ba2);
+    color:white;
+    text-align:center;
+}
+
+/* Navbar */
+nav{
+    background:rgba(0,0,0,0.3);
+    padding:15px;
+}
+
+nav a{
+    color:white;
+    margin:0 15px;
+    text-decoration:none;
+    font-weight:bold;
+}
+
+/* Sections */
+section{
+    padding:50px 20px;
+}
+
+.container{
+    max-width:800px;
+    margin:auto;
+}
+
+/* Card */
+.card{
+    background:rgba(255,255,255,0.1);
+    padding:20px;
+    margin:20px 0;
+    border-radius:15px;
+    box-shadow:0 10px 20px rgba(0,0,0,0.3);
+}
+
+/* Buttons */
+button{
+    padding:10px 20px;
+    border:none;
+    border-radius:10px;
+    margin:10px;
+    background:#ff7eb3;
+    color:white;
+    cursor:pointer;
+}
+
+button:hover{
+    background:#ff4e8a;
+}
+</style>
+
+</head>
+<body>
+
+<!-- Navbar -->
+<nav>
+    <a href="#about">About</a>
+    <a href="#projects">Projects</a>
+</nav>
+
+<!-- About -->
+<section id="about">
+    <div class="container card">
+        <h1>👋 Hello, I'm Bhavyansh</h1>
+        <p id="aboutText">
+            I am a web developer and BCA student. I have skills in HTML, CSS, JavaScript and Core Java.
+            I love building modern and interactive websites.
+        </p>
+
+        <button onclick="readText('aboutText')">🔊 Read About</button>
+    </div>
+</section>
+
+<!-- Projects -->
+<section id="projects">
+    <div class="container card">
+        <h2>💻 My Projects</h2>
+
+        <p id="projectText">
+            1. Weather App using API. 
+            2. Portfolio Website. 
+            3. Modern UI JavaScript Projects.
+        </p>
+
+        <button onclick="readText('projectText')">🔊 Read Projects</button>
+    </div>
+</section>
+
+<!-- Global Controls -->
+<section>
+    <div class="container card">
+        <h2>🎤 Text to Speech</h2>
+
+        <textarea id="customText" placeholder="Type something..."></textarea><br>
+
+        <button onclick="speakCustom()">▶ Speak</button>
+        <button onclick="stopSpeech()">⏹ Stop</button>
+    </div>
+</section>
+
+<script>
+
+// Auto Intro Voice
+window.onload = function(){
+    let intro = "heheheheheheheheheheheehehehe";
+    let speech = new SpeechSynthesisUtterance(intro);
+    speech.lang = "en-US";
+    speechSynthesis.speak(speech);
+};
+
+// Read section text
+function readText(id){
+    stopSpeech(); // avoid overlap
+    let text = document.getElementById(id).innerText;
+    let speech = new SpeechSynthesisUtterance(text);
+    speech.lang = "en-US";
+    speech.rate = 1;
+    speech.pitch = 1;
+    speechSynthesis.speak(speech);
+}
+
+// Custom input speech
+function speakCustom(){
+    stopSpeech();
+    let text = document.getElementById("customText").value;
+
+    if(text === ""){
+        alert("Enter text first!");
+        return;
+    }
+
+    let speech = new SpeechSynthesisUtterance(text);
+    speechSynthesis.speak(speech);
+}
+
+// Stop speech
+function stopSpeech(){
+    speechSynthesis.cancel();
+}
+
+</script>
+
+</body>
+</html>
